@@ -1,0 +1,50 @@
+module.exports = {
+// 源语言
+sourceLanguage: '<%= sourceLanguage || "zh-CN" %>',
+
+  // 目标语言
+  targetLanguages: <%= JSON.stringify(targetLanguages || ['en']) %>,
+
+    // 翻译 API 配置
+    api: {
+    provider: '<%= provider || "google" %>', // 'google', 'baidu', 'deepl'
+      key: process.env.TRANSLATE_API_KEY || '<%= apiKey || "" %>',
+        <% if (provider==='baidu' ) { %>
+          // 百度翻译配置
+          baidu: {
+          appid: process.env.BAIDU_APPID || '',
+          secret: process.env.BAIDU_SECRET || '',
+          },
+          <% } %>
+            rateLimit: 10, // 每秒请求数
+            batchSize: 50, // 批量大小
+            retries: 3, // 重试次数
+            },
+
+            // 扫描配置
+            extract: {
+            include: ['src/**/*.{js,jsx,ts,tsx,vue}'],
+            exclude: ['node_modules', 'dist', 'build'],
+            // 中文匹配正则
+            patterns: [/[\u4e00-\u9fa5]+/g],
+            includeComments: false,
+            },
+
+            // 输出配置
+            output: {
+            dir: '<%= outputDir || "src/locales" %>',
+              format: '<%= outputFormat || "json" %>', // 'json', 'yaml', 'js', 'ts'
+                minify: false,
+                splitByNamespace: false,
+                },
+
+                // 翻译记忆配置
+                memory: {
+                enabled: <%= enableMemory !==false %>,
+                  dbPath: '.translator/memory.db',
+                  similarityThreshold: 0.7,
+                  },
+
+                  // 增量翻译
+                  incremental: true,
+                  }
