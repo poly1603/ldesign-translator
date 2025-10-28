@@ -8,6 +8,8 @@ import { translateCommand } from './commands/translate.js'
 import { exportCommand } from './commands/export.js'
 import { importCommand } from './commands/import.js'
 import { serveCommand } from './commands/serve.js'
+import { validateCommand } from './commands/validate.js'
+import { replaceCommand } from './commands/replace.js'
 import { logger } from '../utils/logger.js'
 import type {
   InitOptions,
@@ -15,6 +17,8 @@ import type {
   TranslateOptions,
   ExportOptions,
   ImportOptions,
+  ValidateOptions,
+  ReplaceOptions,
 } from '../types/index.js'
 
 // 创建 CLI 程序
@@ -135,6 +139,60 @@ program
       const config = await loadConfig()
       const port = options.port ? parseInt(options.port, 10) : 3000
       await serveCommand(config, { port })
+    } catch (error) {
+      logger.error('命令执行失败', error as Error)
+      process.exit(1)
+    }
+  })
+
+// validate 命令
+program
+  .command('validate')
+  .description('验证翻译质量')
+  .option('-l, --languages <langs>', '要验证的语言（逗号分隔）')
+  .option('--no-check-placeholders', '禁用占位符检查')
+  .option('--no-check-html-tags', '禁用 HTML 标签检查')
+  .option('--no-check-length', '禁用长度检查')
+  .option('--max-length <length>', '最大长度限制')
+  .option('-v, --verbose', '显示详细信息')
+  .action(async (options: ValidateOptions) => {
+    try {
+      const config = await loadConfig()
+
+      // 处理语言列表
+      if (typeof options.languages === 'string') {
+        options.languages = options.languages.split(',').map((l) => l.trim())
+      }
+
+      // 处理数值参数
+      if (options.maxLength) {
+        options.maxLength =
+          typeof options.maxLength === 'string'
+            ? parseInt(options.maxLength, 10)
+            : options.maxLength
+      }
+
+      await validateCommand(config, options)
+    } catch (error) {
+      logger.error('命令执行失败', error as Error)
+      process.exit(1)
+    }
+  })
+
+// replace 命令
+program
+  .command('replace [paths...]')
+  .description('替换代码中的硬编码文本为 i18n 调用')
+  .option('-i, --i18n-function <name>', 'i18n 函数名', 't')
+  .option('--no-add-imports', '不自动添加导入语句')
+  .option('--no-backup', '不备份原文件')
+  .option('-d, --dry-run', '预览模式（不实际修改文件）')
+  .option('-v, --verbose', '显示详细信息')
+  .action(async (paths: string[], options: ReplaceOptions) => {
+    try {
+      const config = await loadConfig()
+      options.paths = paths
+      await replaceCommand(config, options)
     } catch (error) {
       logger.error('命令执行失败', error as Error)
       process.exit(1)

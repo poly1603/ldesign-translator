@@ -169,7 +169,208 @@ export function cleanText(text: string): string {
  * 转义正则表达式特殊字符
  */
 export function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return text.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')
 }
 
+/**
+ * 占位符正则表达式
+ */
+export const PLACEHOLDER_PATTERNS = {
+  // {name}, {0}, {count}
+  curly: /\{([^}]+)\}/g,
+  // %s, %d, %1$s
+  percent: /%(?:(\d+)\$)?[sdf]/g,
+  // $name, ${name}
+  dollar: /\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?/g,
+  // {{name}}, [[name]]
+  angular: /\{\{([^}]+)\}\}|\[\[([^\]]+)\]\]/g,
+  // :name
+  colon: /:([a-zA-Z_][a-zA-Z0-9_]*)/g,
+}
+
+/**
+ * 提取文本中的占位符
+ */
+export function extractPlaceholders(text: string): {
+  type: string
+  placeholders: string[]
+} {
+  const found: Set<string> = new Set()
+  let detectedType = 'none'
+
+  // 检测花括号形式
+  const curlyMatches = text.match(PLACEHOLDER_PATTERNS.curly)
+  if (curlyMatches) {
+    curlyMatches.forEach((m) => found.add(m))
+    detectedType = 'curly'
+  }
+
+  // 检测百分号形式
+  const percentMatches = text.match(PLACEHOLDER_PATTERNS.percent)
+  if (percentMatches) {
+    percentMatches.forEach((m) => found.add(m))
+    if (detectedType === 'none') detectedType = 'percent'
+  }
+
+  // 检测美元符形式
+  const dollarMatches = text.match(PLACEHOLDER_PATTERNS.dollar)
+  if (dollarMatches) {
+    dollarMatches.forEach((m) => found.add(m))
+    if (detectedType === 'none') detectedType = 'dollar'
+  }
+
+  // 检测 Angular 形式
+  const angularMatches = text.match(PLACEHOLDER_PATTERNS.angular)
+  if (angularMatches) {
+    angularMatches.forEach((m) => found.add(m))
+    if (detectedType === 'none') detectedType = 'angular'
+  }
+
+  // 检测冒号形式
+  const colonMatches = text.match(PLACEHOLDER_PATTERNS.colon)
+  if (colonMatches) {
+    colonMatches.forEach((m) => found.add(m))
+    if (detectedType === 'none') detectedType = 'colon'
+  }
+
+  return {
+    type: detectedType,
+    placeholders: Array.from(found),
+  }
+}
+
+/**
+ * 验证翻译中的占位符是否完整
+ */
+export function validatePlaceholders(
+  source: string,
+  translation: string
+): {
+  valid: boolean
+  missing: string[]
+  extra: string[]
+} {
+  const sourcePlaceholders = extractPlaceholders(source)
+  const translationPlaceholders = extractPlaceholders(translation)
+
+  const sourceSet = new Set(sourcePlaceholders.placeholders)
+  const translationSet = new Set(translationPlaceholders.placeholders)
+
+  const missing = sourcePlaceholders.placeholders.filter(
+    (p) => !translationSet.has(p)
+  )
+  const extra = translationPlaceholders.placeholders.filter(
+    (p) => !sourceSet.has(p)
+  )
+
+  return {
+    valid: missing.length === 0 && extra.length === 0,
+    missing,
+    extra,
+  }
+}
+
+/**
+ * 提取 HTML 标签
+ */
+export function extractHtmlTags(text: string): string[] {
+  const tagRegex = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g
+  const matches = text.match(tagRegex)
+  return matches || []
+}
+
+/**
+ * 验证 HTML 标签是否匹配
+ */
+export function validateHtmlTags(
+  source: string,
+  translation: string
+): {
+  valid: boolean
+  missing: string[]
+  extra: string[]
+} {
+  const sourceTags = extractHtmlTags(source)
+  const translationTags = extractHtmlTags(translation)
+
+  // 统计标签出现次数
+  const countTags = (tags: string[]) => {
+    const count: Record<string, number> = {}
+    tags.forEach((tag) => {
+      count[tag] = (count[tag] || 0) + 1
+    })
+    return count
+  }
+
+  const sourceCount = countTags(sourceTags)
+  const translationCount = countTags(translationTags)
+
+  const missing: string[] = []
+  const extra: string[] = []
+
+  // 检查缺失的标签
+  Object.keys(sourceCount).forEach((tag) => {
+    const srcCount = sourceCount[tag]
+    const transCount = translationCount[tag] || 0
+    if (transCount < srcCount) {
+      for (let i = 0; i < srcCount - transCount; i++) {
+        missing.push(tag)
+      }
+    }
+  })
+
+  // 棅查额外的标签
+  Object.keys(translationCount).forEach((tag) => {
+    const transCount = translationCount[tag]
+    const srcCount = sourceCount[tag] || 0
+    if (transCount > srcCount) {
+      for (let i = 0; i < transCount - srcCount; i++) {
+        extra.push(tag)
+      }
+    }
+  })
+
+  return {
+    valid: missing.length === 0 && extra.length === 0,
+    missing,
+    extra,
+  }
+}
+
+/**
+ * 保护占位符（在翻译前替换为特殊标记）
+ */
+export function protectPlaceholders(text: string): {
+  protected: string
+  placeholders: Map<string, string>
+} {
+  const placeholders = new Map<string, string>()
+  let protected_text = text
+  let index = 0
+
+  const { placeholders: foundPlaceholders } = extractPlaceholders(text)
+
+  foundPlaceholders.forEach((placeholder) => {
+    const marker = `__PLACEHOLDER_${index}__`
+    placeholders.set(marker, placeholder)
+    protected_text = protected_text.replace(placeholder, marker)
+    index++
+  })
+
+  return { protected: protected_text, placeholders }
+}
+
+/**
+ * 恢复占位符（翻译后恢复原始占位符）
+ */
+export function restorePlaceholders(
+  text: string,
+  placeholders: Map<string, string>
+): string {
+  let restored = text
+  placeholders.forEach((original, marker) => {
+    restored = restored.replace(new RegExp(escapeRegExp(marker), 'g'), original)
+  })
+  return restored
+}
 

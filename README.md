@@ -29,6 +29,26 @@
   - 批量操作
   - 统计仪表板
   - 主题切换
+- 🔧 **代码自动替换** - 自动将硬编码替换为 i18n 调用
+  - 支持 JS/TS/JSX/TSX/Vue
+  - 自动添加导入语句
+  - 备份原文件
+  - 预览模式
+- ✅ **翻译质量检查** - 确保翻译质量和一致性
+  - 占位符完整性检查
+  - HTML 标签匹配验证
+  - 长度限制检查
+  - 详细错误报告
+- 📚 **术语库管理** - 统一专业术语翻译
+  - 术语一致性保证
+  - 品牌名称保护
+  - Excel 导入导出
+  - 智能术语匹配
+- 🎯 **智能占位符处理** - 自动识别和保护变量
+  - 支持多种占位符格式
+  - 翻译前保护占位符
+  - 翻译后恢复占位符
+  - 占位符完整性验证
 - ⚡ **性能优化**
   - 批量 API 调用
   - 速率限制
@@ -147,6 +167,36 @@ module.exports = {
   
   // 增量翻译
   incremental: true,
+  
+  // 术语库配置
+  glossary: {
+    enabled: true,
+    filePath: '.translator/glossary.json',
+    entries: [
+      {
+        term: 'API',
+        translations: {},
+        doNotTranslate: true,
+        caseSensitive: true,
+      },
+    ],
+  },
+  
+  // 代码替换配置
+  replace: {
+    i18nFunction: 't',
+    importPath: '@/i18n',
+    addImports: true,
+  },
+  
+  // 翻译验证配置
+  validation: {
+    enabled: true,
+    checkPlaceholders: true,
+    checkHtmlTags: true,
+    checkLength: true,
+    maxLength: 1000,
+  },
 }
 ```
 
@@ -188,6 +238,18 @@ npx ldesign-translator import -f <file> [options]
 npx ldesign-translator serve [options]
 ```
 
+### validate
+验证翻译质量
+```bash
+npx ldesign-translator validate [options]
+```
+
+### replace
+替换代码中的硬编码文本为 i18n 调用
+```bash
+npx ldesign-translator replace [paths...] [options]
+```
+
 详细使用说明请查看 [HOW_TO_USE.md](./HOW_TO_USE.md)。
 
 ## 🎯 使用场景
@@ -220,6 +282,30 @@ npx ldesign-translator extract
 
 # 只翻译新增的
 npx ldesign-translator translate --to en
+```
+
+### 4. 代码自动替换
+```bash
+# 预览替换结果
+npx ldesign-translator replace --dry-run
+
+# 执行替换（自动备份）
+npx ldesign-translator replace
+
+# 指定 i18n 函数名
+npx ldesign-translator replace -i useTranslation
+```
+
+### 5. 翻译质量验证
+```bash
+# 验证所有语言
+npx ldesign-translator validate
+
+# 验证特定语言
+npx ldesign-translator validate -l en,ja
+
+# 自定义检查项
+npx ldesign-translator validate --no-check-length
 ```
 
 ## 🔧 与 i18n 框架集成

@@ -16,6 +16,30 @@ export interface TranslatorConfig {
   memory?: MemoryConfig
   /** 是否启用增量翻译 */
   incremental?: boolean
+  /** 术语库配置 */
+  glossary?: GlossaryConfig
+  /** 替换配置 */
+  replace?: {
+    /** i18n 函数名 */
+    i18nFunction?: string
+    /** 导入路径 */
+    importPath?: string
+    /** 是否自动添加导入 */
+    addImports?: boolean
+  }
+  /** 验证配置 */
+  validation?: {
+    /** 是否启用 */
+    enabled?: boolean
+    /** 检查占位符 */
+    checkPlaceholders?: boolean
+    /** 检查 HTML 标签 */
+    checkHtmlTags?: boolean
+    /** 检查长度 */
+    checkLength?: boolean
+    /** 最大长度 */
+    maxLength?: number
+  }
 }
 
 /**
@@ -23,13 +47,24 @@ export interface TranslatorConfig {
  */
 export interface ApiConfig {
   /** 翻译服务提供商 */
-  provider: 'google' | 'baidu' | 'deepl'
+  provider: 'google' | 'baidu' | 'deepl' | 'openai' | 'anthropic'
   /** API 密钥 */
   key: string
   /** 百度翻译配置 */
   baidu?: {
     appid: string
     secret: string
+  }
+  /** OpenAI 配置 */
+  openai?: {
+    model?: string
+    apiKey?: string
+    baseURL?: string
+  }
+  /** Anthropic 配置 */
+  anthropic?: {
+    model?: string
+    apiKey?: string
   }
   /** 速率限制（每秒请求数）*/
   rateLimit?: number
@@ -294,4 +329,121 @@ export interface CLIContext {
   debug?: boolean
 }
 
+/**
+ * 替换选项
+ */
+export interface ReplaceOptions {
+  /** 目标路径 */
+  paths?: string[]
+  /** i18n 函数名 */
+  i18nFunction?: string
+  /** 是否生成导入语句 */
+  addImports?: boolean
+  /** 是否备份原文件 */
+  backup?: boolean
+  /** 是否预览模式 */
+  dryRun?: boolean
+  /** 是否显示详细信息 */
+  verbose?: boolean
+}
+
+/**
+ * 验证选项
+ */
+export interface ValidateOptions {
+  /** 要验证的语言 */
+  languages?: string[]
+  /** 是否检查占位符 */
+  checkPlaceholders?: boolean
+  /** 是否检查 HTML 标签 */
+  checkHtmlTags?: boolean
+  /** 是否检查长度 */
+  checkLength?: boolean
+  /** 最大长度限制 */
+  maxLength?: number
+  /** 是否显示详细信息 */
+  verbose?: boolean
+}
+
+/**
+ * 验证结果
+ */
+export interface ValidationResult {
+  /** 键 */
+  key: string
+  /** 语言 */
+  language: string
+  /** 验证类型 */
+  type: 'placeholder' | 'html' | 'length' | 'empty' | 'term'
+  /** 严重级别 */
+  severity: 'error' | 'warning' | 'info'
+  /** 消息 */
+  message: string
+  /** 原文 */
+  source?: string
+  /** 译文 */
+  translation?: string
+}
+
+/**
+ * 术语条目
+ */
+export interface GlossaryEntry {
+  /** 术语（源语言） */
+  term: string
+  /** 翻译映射 */
+  translations: Record<string, string>
+  /** 是否禁止翻译 */
+  doNotTranslate?: boolean
+  /** 描述 */
+  description?: string
+  /** 大小写敏感 */
+  caseSensitive?: boolean
+}
+
+/**
+ * 术语库配置
+ */
+export interface GlossaryConfig {
+  /** 是否启用 */
+  enabled: boolean
+  /** 术语库文件路径 */
+  filePath?: string
+  /** 术语条目 */
+  entries?: GlossaryEntry[]
+}
+
+/**
+ * 占位符信息
+ */
+export interface PlaceholderInfo {
+  /** 占位符类型 */
+  type: 'curly' | 'percent' | 'dollar' | 'angular' | 'custom'
+  /** 占位符列表 */
+  placeholders: string[]
+  /** 原始文本 */
+  original: string
+}
+
+/**
+ * 替换结果
+ */
+export interface ReplaceResult {
+  /** 文件路径 */
+  filePath: string
+  /** 替换数量 */
+  count: number
+  /** 是否成功 */
+  success: boolean
+  /** 错误信息 */
+  error?: string
+  /** 替换详情 */
+  replacements?: Array<{
+    line: number
+    column: number
+    original: string
+    replaced: string
+    key: string
+  }>
+}
 
