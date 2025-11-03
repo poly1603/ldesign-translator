@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "@ldesign/translator",
   "version": "1.0.0",
-  "description": "智能的国际化翻译管理工具，让多语言支持变得简单",
+  "description": "Intelligent i18n translation management tool",
   "keywords": [
     "ldesign",
     "translator",
@@ -77,7 +77,6 @@
     "express": "^4.18.2",
     "ws": "^8.16.0",
     "cors": "^2.8.5",
-    "crypto": "^1.0.1",
     "md5": "^2.3.0"
   },
   "devDependencies": {
